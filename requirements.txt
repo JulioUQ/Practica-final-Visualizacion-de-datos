@@ -6,4 +6,3 @@ geopandas
 scikit-learn
 folium
 streamlit_folium
-folium_static
