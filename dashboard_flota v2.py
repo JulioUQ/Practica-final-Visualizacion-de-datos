@@ -175,6 +175,24 @@ def load_geo_data():
 
 gdf_ccaa = load_geo_data()
 
+# De table1 (data) queremos todas las columnas
+table1 = data.copy()
+
+# De table2 (gdf_ccaa) queremos solo 'geometry' + la columna clave 'link_key'
+table2 = gdf_ccaa[['link_key', 'geometry']].copy()
+
+# Merge
+df_resultante = pd.merge(
+    table1,
+    table2,
+    left_on='Comunidad Autónoma',
+    right_on='link_key',
+    how='inner' 
+)
+
+# Convertir a GeoDataFrame
+gdf_ccaa = gpd.GeoDataFrame(df_resultante, geometry='geometry', crs=gdf_ccaa.crs)
+
 # SIDEBAR - FILTROS
 st.sidebar.title("⚓ Filtros de Exploración")
 
