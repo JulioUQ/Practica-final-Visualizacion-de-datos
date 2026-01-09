@@ -183,6 +183,7 @@
   },
   "active": "90d352a944a59064",
   "lastOpenFiles": [
+    "utils/generar_requirements.py",
     "requirements.txt",
     "generar_requirements.py",
     "requirements.py",
