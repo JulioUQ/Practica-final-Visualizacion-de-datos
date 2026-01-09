@@ -116,23 +116,61 @@ data = load_data()
 
 # Cargar shapefiles (opcional, solo si existen)
 @st.cache_data
-def load_shapefiles():
+def load_geo_data():
     try:
-        path_ccaa_peninbal = BASE_DIR / "3. Datos" / "SHP_ETRS89" / "recintos_autonomicas_inspire_peninbal_etrs89" / "recintos_autonomicas_inspire_peninbal_etrs89.shp"
-        path_ccaa_regcan = BASE_DIR / "3. Datos" / "SHP_REGCAN95" / "recintos_autonomicas_inspire_canarias_regcan95" / "recintos_autonomicas_inspire_canarias_regcan95.shp"
-        
+        # Ajusta estas rutas según tu estructura de carpetas en Streamlit
+        # NOTA: En Streamlit Cloud o servidores, a veces las rutas relativas '..' fallan.
+        # Intenta usar rutas desde la raíz del proyecto o os.path.join
+        path_ccaa_peninbal = r'..\3. Datos\SHP_ETRS89\recintos_autonomicas_inspire_peninbal_etrs89\recintos_autonomicas_inspire_peninbal_etrs89.shp'
+        path_ccaa_regcan = r'..\3. Datos\SHP_REGCAN95\recintos_autonomicas_inspire_canarias_regcan95\recintos_autonomicas_inspire_canarias_regcan95.shp'
+
+        # Carga directa con Geopandas (o usa tu libreria gf si la tienes importada)
         gdf_peninbal = gpd.read_file(path_ccaa_peninbal)
         gdf_canarias = gpd.read_file(path_ccaa_regcan)
-        
+
+        # Renombrar y seleccionar
         gdf_peninbal_sel = gdf_peninbal.rename(columns={'NAMEUNIT': 'comunidad'})[['comunidad', 'geometry']]
         gdf_canarias_sel = gdf_canarias.rename(columns={'NAMEUNIT': 'comunidad'})[['comunidad', 'geometry']]
-        
+
+        # Concatenar
         gdf_ccaa = pd.concat([gdf_peninbal_sel, gdf_canarias_sel], ignore_index=True)
+
+        # Diccionario de corrección (CRUCIAL para que el cruce funcione)
+        mapa_a_datos = {
+            'Principado de Asturias': 'Asturias',
+            'Illes Balears': 'Illes balears',
+            'Cataluña/Catalunya': 'Cataluña',
+            'Región de Murcia': 'Murcia',
+            'País Vasco/Euskadi': 'País Vasco',
+            'Ciudad Autónoma de Ceuta': 'Ceuta',
+            'Ciudad Autónoma de Melilla': 'Melilla',
+            'Comunitat Valenciana': 'Comunitat Valenciana',
+            'Galicia': 'Galicia',
+            'Cantabria': 'Cantabria',
+            'Andalucía': 'Andalucía',
+            'Canarias': 'Canarias',
+            'Castilla y León': 'Castilla y León',
+            'Castilla-La Mancha': 'Castilla-La Mancha',
+            'Aragón': 'Aragón',
+            'Comunidad de Madrid': 'Madrid', # Ajustar según tus datos de buques
+            'Comunidad Foral de Navarra': 'Navarra',
+            'La Rioja': 'La Rioja',
+            'Extremadura': 'Extremadura'
+        }
+        
+        # Aplicar el diccionario y crear link_key
+        gdf_ccaa['link_key'] = gdf_ccaa['comunidad'].replace(mapa_a_datos)
+        
+        # Simplificar geometría AQUÍ para mejorar rendimiento general
+        gdf_ccaa['geometry'] = gdf_ccaa.simplify(tolerance=0.005, preserve_topology=True)
+        
         return gdf_ccaa
-    except:
+
+    except Exception as e:
+        st.error(f"Error cargando shapefiles: {e}")
         return None
 
-gdf_ccaa = load_shapefiles()
+gdf_ccaa = load_geo_data()
 
 # SIDEBAR - FILTROS
 st.sidebar.title("⚓ Filtros de Exploración")
@@ -1077,10 +1115,10 @@ Después:
     <div class="quality-check">
         <strong>Problema:</strong> ~2000 registros con valores 0 en eslora, arqueo y potencia (físicamente imposible)<br>
         <strong>Método:</strong> Imputación con K-Nearest Neighbors (k=15)<br>
-        <strong>Justificación de k=15:</strong>
-        • Con k bajo (ej. 3), un outlier puede distorsionar la imputación<br>
-        • Con k=15, el impacto de outliers se diluye al promediar más observaciones<br>
-        • Dataset grande (27,000 registros) permite usar k alto sin sobreajuste
+        <strong>Justificación de k=15:</strong>  
+            • Con k bajo (ej. 3), un outlier puede distorsionar la imputación<br>
+            • Con k=15, el impacto de outliers se diluye al promediar más observaciones<br>
+            • Dataset grande (27,000 registros) permite usar k alto sin sobreajuste
     </div>
     """, unsafe_allow_html=True)
 
