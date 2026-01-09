@@ -127,6 +127,10 @@ def load_geo_data():
         gdf_peninbal = gpd.read_file(SHP_PENINBAL)
         gdf_canarias = gpd.read_file(SHP_REGCAN)
 
+        # Transformar ambos a CRS común (WGS84)
+        gdf_peninbal = gdf_peninbal.to_crs(epsg=4326)
+        gdf_canarias = gdf_canarias.to_crs(epsg=4326)
+
         # Seleccionar columnas y renombrar
         gdf_peninbal_sel = gdf_peninbal.rename(columns={'NAMEUNIT': 'comunidad'})[['comunidad', 'geometry']]
         gdf_canarias_sel = gdf_canarias.rename(columns={'NAMEUNIT': 'comunidad'})[['comunidad', 'geometry']]
