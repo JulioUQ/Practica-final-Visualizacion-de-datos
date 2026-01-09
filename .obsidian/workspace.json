@@ -185,6 +185,8 @@
   },
   "active": "90d352a944a59064",
   "lastOpenFiles": [
+    "generar_guion.py",
+    "utils/generar_guion.py",
     "dashboard_flota v2.py",
     "dashboard_flota copy.py",
     "6. PEC Final/UBEDAQUESADAJULIO_Parte-1_ Seleccion-del-conjunto-de-datos.pdf",
@@ -194,8 +196,6 @@
     "utils/generar_requirements.py",
     "generar_requirements.py",
     "requirements.py",
-    "dashboard_flota.py",
-    "Dashboard_v1.py",
     "README.md"
   ]
 }

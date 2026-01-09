@@ -264,13 +264,13 @@ st.markdown('<div class="subtitle">38 Años de Historia Naval (1987-2025)</div>'
 st.markdown("---")
 
 # TABS - CAPÍTULOS
-tab1, tab2, tab3, tab4, tab5, tab6, tab7 = st.tabs([
+tab1, tab7, tab2, tab3, tab4, tab5, tab6 = st.tabs([
     "🏠 Panorama General",
+    "✅ Control de Calidad",
     "⏱️ Evolución Temporal",
     "🗺️ Distribución Geográfica",
     "🎣 Modalidades de Pesca",
     "⚙️ Tipologías (Clustering)",
-    "✅ Control de Calidad",
     "🎯 Conclusiones"
 ])
 
@@ -416,6 +416,275 @@ with tab1:
             fig_edad_cat.update_traces(texttemplate='%{text:,}', textposition='outside')
             fig_edad_cat.update_layout(height=400, showlegend=False)
             st.plotly_chart(fig_edad_cat, use_container_width=True)
+
+
+# TAB 6: CONTROL DE CALIDAD
+with tab6:
+    st.markdown("""
+    <div class="chapter-intro">
+        <strong>Plan de Control de Calidad en la Fase de Visualización</strong><br>
+        Este apartado documenta el proceso de limpieza y transformación de los datos, garantizando 
+        la <strong>calidad, coherencia e integridad</strong> de las visualizaciones presentadas.
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("## 🔍 Proceso de Limpieza de Datos")
+
+    # 1. Duplicados
+    st.markdown("### 1️⃣ Revisión de Duplicados")
+    st.markdown("""
+    <div class="quality-check">
+        <strong>✅ Verificación:</strong> No se encontraron valores duplicados en el dataset.<br>
+        <strong>Método:</strong> Verificación de códigos CFR (Community Fishing Fleet Register), identificadores únicos.<br>
+        <strong>Resultado:</strong> Cada CFR es único y puede utilizarse como clave primaria.
+    </div>
+    """, unsafe_allow_html=True)
+
+    col1, col2 = st.columns(2)
+    with col1:
+        st.code("""
+# Verificación de duplicados
+duplicados = df['cfr'].duplicated().sum()
+print(f"Duplicados encontrados: {duplicados}")
+# Output: 0
+        """, language='python')
+    
+    with col2:
+        st.metric("Registros Únicos", f"{len(data):,}", help="Todos los CFR son únicos")
+
+    # 2. Valores problemáticos
+    st.markdown("### 2️⃣ Identificación de Valores Problemáticos")
+    
+    problemas_data = {
+        'Columna': ['Tipo de auxiliar', 'Capacidad del buque', 'IMO', 'IRCS', 
+                    'Censo por modalidad', 'Material del casco', 'Potencia/Arqueo/Eslora'],
+        'Problema': ['100% vacía', '>99% nulos', '>80% caracteres especiales', '>80% caracteres especiales',
+                    '~2297 con "-"', 'Pocos con "-"', '~2000 con valor 0'],
+        'Acción': ['Eliminada', 'Eliminada', 'Eliminada (se conservó CFR)', 'Eliminada (se conservó CFR)',
+                  'Agrupados en "Otros"', 'Agrupados en "Otros"', 'Imputación con KNN']
+    }
+    
+    df_problemas = pd.DataFrame(problemas_data)
+    st.dataframe(df_problemas, use_container_width=True)
+
+    # 3. Simplificación de nombres
+    st.markdown("### 3️⃣ Estandarización de Nombres de Columnas")
+    st.markdown("""
+    <div class="quality-check">
+        <strong>Objetivo:</strong> Facilitar la escritura y lectura del código.<br>
+        <strong>Acciones:</strong> Eliminación de espacios, tildes y caracteres especiales.<br>
+        <strong>Beneficio:</strong> Código más limpio, profesional y mantenible.
+    </div>
+    """, unsafe_allow_html=True)
+
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown("**Antes:**")
+        st.code("""
+'CFR'
+'Nombre'
+'Alta en RGFP'
+'Eslora total'
+'Arqueo GT'
+'Puerto base'
+        """)
+    
+    with col2:
+        st.markdown("**Después:**")
+        st.code("""
+'cfr'
+'nombre'
+'fc_alta_rgfp'
+'eslora_total'
+'arqueo_gt'
+'puerto_base'
+        """)
+
+    # 4. Corrección de tipos de dato
+    st.markdown("### 4️⃣ Corrección de Tipos de Dato")
+    
+    st.markdown("#### 📊 Variables Numéricas")
+    st.markdown("""
+    <div class="quality-check">
+        <strong>Problema Original:</strong><br>
+        • <code>eslora_total</code> y <code>arqueo_gt</code>: contenían unidades ('m', 'GT') y comas como separador decimal<br>
+        • <code>potencia</code>: información duplicada en diferentes unidades: '202,26 kW (275,0 CV)'<br><br>
+        <strong>Solución:</strong><br>
+        • Extracción de valores numéricos<br>
+        • Conversión de comas a puntos<br>
+        • Estandarización a una única unidad (kW para potencia)
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("#### 📅 Variables Temporales")
+    st.markdown("""
+    <div class="quality-check">
+        <strong>Conversión:</strong> <code>alta_rgfp</code> de texto a tipo fecha (datetime)<br>
+        <strong>Beneficio:</strong> Permite análisis cronológicos, cálculos de antigüedad y filtrado por rangos
+    </div>
+    """, unsafe_allow_html=True)
+
+    # 5. Transformación estructural
+    st.markdown("### 5️⃣ Transformación Estructural")
+    
+    st.markdown("#### Descomposición de Columnas")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("**`estado` → `estado_rgfp` + `fc_estado`**")
+        st.code("""
+Antes: "Baja Definitiva (desde el 02/12/1998)"
+
+Después:
+• estado_rgfp: "Baja Definitiva"
+• fc_estado: 1998-12-02
+        """)
+    
+    with col2:
+        st.markdown("**`puerto_base` → 4 columnas**")
+        st.code("""
+Antes: "15570 Naron (A Coruña) Galicia"
+
+Después:
+• codigopostal: "15570"
+• puerto: "Naron"
+• provincia: "A Coruña"
+• comunidad_autonoma: "Galicia"
+        """)
+
+    # 6. Tratamiento de valores anómalos
+    st.markdown("### 6️⃣ Imputación de Valores Anómalos")
+    
+    st.markdown("""
+    <div class="quality-check">
+        <strong>Problema:</strong> ~2000 registros con valores 0 en eslora, arqueo y potencia (físicamente imposible)<br>
+        <strong>Método:</strong> Imputación con K-Nearest Neighbors (k=15)<br>
+        <strong>Justificación de k=15:</strong>  
+            • Con k bajo (ej. 3), un outlier puede distorsionar la imputación<br>
+            • Con k=15, el impacto de outliers se diluye al promediar más observaciones<br>
+            • Dataset grande (27,000 registros) permite usar k alto sin sobreajuste
+    </div>
+    """, unsafe_allow_html=True)
+
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.markdown("**Eslora Total**")
+        st.metric("Media Original", "11.48 m")
+        st.metric("Media Imputada", "11.50 m", "↑ 0.02")
+        st.metric("Desv. Std Original", "9.99")
+        st.metric("Desv. Std Imputada", "9.86", "↓ 0.13")
+    
+    with col2:
+        st.markdown("**Arqueo GT**")
+        st.metric("Media Original", "44.24 GT")
+        st.metric("Media Imputada", "45.42 GT", "↑ 1.18")
+        st.metric("Desv. Std Original", "180.62")
+        st.metric("Desv. Std Imputada", "179.31", "↓ 1.31")
+    
+    with col3:
+        st.markdown("**Potencia kW**")
+        st.metric("Media Original", "118.66 kW")
+        st.metric("Media Imputada", "107.85 kW", "↓ 10.81")
+        st.metric("Desv. Std Original", "274.20")
+        st.metric("Desv. Std Imputada", "262.29", "↓ 11.91")
+
+    st.markdown("""
+    <div class="insight-box">
+        <strong>💡 Conclusión:</strong> Las estadísticas se mantienen muy similares, confirmando que el método 
+        <strong>preserva los patrones multidimensionales</strong> y la estructura del dataset.
+    </div>
+    """, unsafe_allow_html=True)
+
+    # 7. Detección de outliers
+    st.markdown("### 7️⃣ Detección de Outliers")
+    
+    fig_outliers = make_subplots(
+        rows=1, cols=3,
+        subplot_titles=('Eslora Total', 'Arqueo GT', 'Potencia kW')
+    )
+
+    for idx, (col, title) in enumerate([('eslora_total', 'Eslora'), 
+                                        ('arqueo_gt', 'Arqueo'), 
+                                        ('potencia_kw', 'Potencia')], 1):
+        fig_outliers.add_trace(
+            go.Box(y=data[col], name=title, marker_color='lightblue'),
+            row=1, col=idx
+        )
+
+    fig_outliers.update_layout(height=400, showlegend=False)
+    st.plotly_chart(fig_outliers, use_container_width=True)
+
+    st.markdown("""
+    <div class="quality-check">
+        <strong>Observaciones:</strong><br>
+        • <strong>Eslora:</strong> Mayoría <25m, pero existen embarcaciones atípicamente grandes (válidas)<br>
+        • <strong>Arqueo:</strong> Centrado en valores bajos, outliers >4000 GT representan buques de gran capacidad<br>
+        • <strong>Potencia:</strong> Predominan potencias bajas, valores extremos >5000 kW son buques industriales<br><br>
+        <strong>Decisión:</strong> Los outliers son <strong>válidos y se mantienen</strong> en el análisis, 
+        pero se consideran en interpretaciones estadísticas.
+    </div>
+    """, unsafe_allow_html=True)
+
+    # 8. Enriquecimiento
+    st.markdown("### 8️⃣ Enriquecimiento del Dataset")
+    
+    st.markdown("#### Variable `edad_buque`")
+    st.markdown("""
+    <div class="quality-check">
+        <strong>Creación:</strong> Antigüedad desde fecha de alta hasta fecha de baja (o actual si está activo)<br>
+        <strong>Utilidad:</strong> Análisis de ciclo de vida, estudios de renovación, políticas de reemplazo
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.code("""
+# Cálculo de edad
+df['Edad_buque'] = np.where(
+    df['fc_estado'].notna(),
+    (df['fc_estado'] - df['fc_alta_rgfp']).dt.days / 365.25,
+    (pd.Timestamp.now() - df['fc_alta_rgfp']).dt.days / 365.25
+)
+    """, language='python')
+
+    # Resumen final
+    st.markdown("## ✅ Resumen del Control de Calidad")
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.markdown("""
+        <div class="recommendation-box">
+            <strong>Integridad de Datos</strong><br>
+            ✓ Sin duplicados<br>
+            ✓ Valores 0 imputados<br>
+            ✓ Outliers válidos identificados<br>
+            ✓ 100% registros con CFR único
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col2:
+        st.markdown("""
+        <div class="recommendation-box">
+            <strong>Consistencia</strong><br>
+            ✓ Tipos de dato correctos<br>
+            ✓ Nombres estandarizados<br>
+            ✓ Fechas en formato datetime<br>
+            ✓ Unidades homogéneas
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col3:
+        st.markdown("""
+        <div class="recommendation-box">
+            <strong>Enriquecimiento</strong><br>
+            ✓ Variables derivadas creadas<br>
+            ✓ Categorización aplicada<br>
+            ✓ Descomposición geográfica<br>
+            ✓ Clasificación por arte
+        </div>
+        """, unsafe_allow_html=True)
+
 
 # TAB 2: EVOLUCIÓN TEMPORAL
 with tab2:
@@ -1086,272 +1355,6 @@ with tab5:
             ccaa_dist = cluster_data['Comunidad Autónoma'].value_counts()
             st.markdown(f"**Principales CCAA:** {', '.join(ccaa_dist.head(3).index.tolist())}")
 
-# TAB 6: CONTROL DE CALIDAD
-with tab6:
-    st.markdown("""
-    <div class="chapter-intro">
-        <strong>Plan de Control de Calidad en la Fase de Visualización</strong><br>
-        Este apartado documenta el proceso de limpieza y transformación de los datos, garantizando 
-        la <strong>calidad, coherencia e integridad</strong> de las visualizaciones presentadas.
-    </div>
-    """, unsafe_allow_html=True)
-
-    st.markdown("## 🔍 Proceso de Limpieza de Datos")
-
-    # 1. Duplicados
-    st.markdown("### 1️⃣ Revisión de Duplicados")
-    st.markdown("""
-    <div class="quality-check">
-        <strong>✅ Verificación:</strong> No se encontraron valores duplicados en el dataset.<br>
-        <strong>Método:</strong> Verificación de códigos CFR (Community Fishing Fleet Register), identificadores únicos.<br>
-        <strong>Resultado:</strong> Cada CFR es único y puede utilizarse como clave primaria.
-    </div>
-    """, unsafe_allow_html=True)
-
-    col1, col2 = st.columns(2)
-    with col1:
-        st.code("""
-# Verificación de duplicados
-duplicados = df['cfr'].duplicated().sum()
-print(f"Duplicados encontrados: {duplicados}")
-# Output: 0
-        """, language='python')
-    
-    with col2:
-        st.metric("Registros Únicos", f"{len(data):,}", help="Todos los CFR son únicos")
-
-    # 2. Valores problemáticos
-    st.markdown("### 2️⃣ Identificación de Valores Problemáticos")
-    
-    problemas_data = {
-        'Columna': ['Tipo de auxiliar', 'Capacidad del buque', 'IMO', 'IRCS', 
-                    'Censo por modalidad', 'Material del casco', 'Potencia/Arqueo/Eslora'],
-        'Problema': ['100% vacía', '>99% nulos', '>80% caracteres especiales', '>80% caracteres especiales',
-                    '~2297 con "-"', 'Pocos con "-"', '~2000 con valor 0'],
-        'Acción': ['Eliminada', 'Eliminada', 'Eliminada (se conservó CFR)', 'Eliminada (se conservó CFR)',
-                  'Agrupados en "Otros"', 'Agrupados en "Otros"', 'Imputación con KNN']
-    }
-    
-    df_problemas = pd.DataFrame(problemas_data)
-    st.dataframe(df_problemas, use_container_width=True)
-
-    # 3. Simplificación de nombres
-    st.markdown("### 3️⃣ Estandarización de Nombres de Columnas")
-    st.markdown("""
-    <div class="quality-check">
-        <strong>Objetivo:</strong> Facilitar la escritura y lectura del código.<br>
-        <strong>Acciones:</strong> Eliminación de espacios, tildes y caracteres especiales.<br>
-        <strong>Beneficio:</strong> Código más limpio, profesional y mantenible.
-    </div>
-    """, unsafe_allow_html=True)
-
-    col1, col2 = st.columns(2)
-    with col1:
-        st.markdown("**Antes:**")
-        st.code("""
-'CFR'
-'Nombre'
-'Alta en RGFP'
-'Eslora total'
-'Arqueo GT'
-'Puerto base'
-        """)
-    
-    with col2:
-        st.markdown("**Después:**")
-        st.code("""
-'cfr'
-'nombre'
-'fc_alta_rgfp'
-'eslora_total'
-'arqueo_gt'
-'puerto_base'
-        """)
-
-    # 4. Corrección de tipos de dato
-    st.markdown("### 4️⃣ Corrección de Tipos de Dato")
-    
-    st.markdown("#### 📊 Variables Numéricas")
-    st.markdown("""
-    <div class="quality-check">
-        <strong>Problema Original:</strong><br>
-        • <code>eslora_total</code> y <code>arqueo_gt</code>: contenían unidades ('m', 'GT') y comas como separador decimal<br>
-        • <code>potencia</code>: información duplicada en diferentes unidades: '202,26 kW (275,0 CV)'<br><br>
-        <strong>Solución:</strong><br>
-        • Extracción de valores numéricos<br>
-        • Conversión de comas a puntos<br>
-        • Estandarización a una única unidad (kW para potencia)
-    </div>
-    """, unsafe_allow_html=True)
-
-    st.markdown("#### 📅 Variables Temporales")
-    st.markdown("""
-    <div class="quality-check">
-        <strong>Conversión:</strong> <code>alta_rgfp</code> de texto a tipo fecha (datetime)<br>
-        <strong>Beneficio:</strong> Permite análisis cronológicos, cálculos de antigüedad y filtrado por rangos
-    </div>
-    """, unsafe_allow_html=True)
-
-    # 5. Transformación estructural
-    st.markdown("### 5️⃣ Transformación Estructural")
-    
-    st.markdown("#### Descomposición de Columnas")
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.markdown("**`estado` → `estado_rgfp` + `fc_estado`**")
-        st.code("""
-Antes: "Baja Definitiva (desde el 02/12/1998)"
-
-Después:
-• estado_rgfp: "Baja Definitiva"
-• fc_estado: 1998-12-02
-        """)
-    
-    with col2:
-        st.markdown("**`puerto_base` → 4 columnas**")
-        st.code("""
-Antes: "15570 Naron (A Coruña) Galicia"
-
-Después:
-• codigopostal: "15570"
-• puerto: "Naron"
-• provincia: "A Coruña"
-• comunidad_autonoma: "Galicia"
-        """)
-
-    # 6. Tratamiento de valores anómalos
-    st.markdown("### 6️⃣ Imputación de Valores Anómalos")
-    
-    st.markdown("""
-    <div class="quality-check">
-        <strong>Problema:</strong> ~2000 registros con valores 0 en eslora, arqueo y potencia (físicamente imposible)<br>
-        <strong>Método:</strong> Imputación con K-Nearest Neighbors (k=15)<br>
-        <strong>Justificación de k=15:</strong>  
-            • Con k bajo (ej. 3), un outlier puede distorsionar la imputación<br>
-            • Con k=15, el impacto de outliers se diluye al promediar más observaciones<br>
-            • Dataset grande (27,000 registros) permite usar k alto sin sobreajuste
-    </div>
-    """, unsafe_allow_html=True)
-
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        st.markdown("**Eslora Total**")
-        st.metric("Media Original", "11.48 m")
-        st.metric("Media Imputada", "11.50 m", "↑ 0.02")
-        st.metric("Desv. Std Original", "9.99")
-        st.metric("Desv. Std Imputada", "9.86", "↓ 0.13")
-    
-    with col2:
-        st.markdown("**Arqueo GT**")
-        st.metric("Media Original", "44.24 GT")
-        st.metric("Media Imputada", "45.42 GT", "↑ 1.18")
-        st.metric("Desv. Std Original", "180.62")
-        st.metric("Desv. Std Imputada", "179.31", "↓ 1.31")
-    
-    with col3:
-        st.markdown("**Potencia kW**")
-        st.metric("Media Original", "118.66 kW")
-        st.metric("Media Imputada", "107.85 kW", "↓ 10.81")
-        st.metric("Desv. Std Original", "274.20")
-        st.metric("Desv. Std Imputada", "262.29", "↓ 11.91")
-
-    st.markdown("""
-    <div class="insight-box">
-        <strong>💡 Conclusión:</strong> Las estadísticas se mantienen muy similares, confirmando que el método 
-        <strong>preserva los patrones multidimensionales</strong> y la estructura del dataset.
-    </div>
-    """, unsafe_allow_html=True)
-
-    # 7. Detección de outliers
-    st.markdown("### 7️⃣ Detección de Outliers")
-    
-    fig_outliers = make_subplots(
-        rows=1, cols=3,
-        subplot_titles=('Eslora Total', 'Arqueo GT', 'Potencia kW')
-    )
-
-    for idx, (col, title) in enumerate([('eslora_total', 'Eslora'), 
-                                        ('arqueo_gt', 'Arqueo'), 
-                                        ('potencia_kw', 'Potencia')], 1):
-        fig_outliers.add_trace(
-            go.Box(y=data[col], name=title, marker_color='lightblue'),
-            row=1, col=idx
-        )
-
-    fig_outliers.update_layout(height=400, showlegend=False)
-    st.plotly_chart(fig_outliers, use_container_width=True)
-
-    st.markdown("""
-    <div class="quality-check">
-        <strong>Observaciones:</strong><br>
-        • <strong>Eslora:</strong> Mayoría <25m, pero existen embarcaciones atípicamente grandes (válidas)<br>
-        • <strong>Arqueo:</strong> Centrado en valores bajos, outliers >4000 GT representan buques de gran capacidad<br>
-        • <strong>Potencia:</strong> Predominan potencias bajas, valores extremos >5000 kW son buques industriales<br><br>
-        <strong>Decisión:</strong> Los outliers son <strong>válidos y se mantienen</strong> en el análisis, 
-        pero se consideran en interpretaciones estadísticas.
-    </div>
-    """, unsafe_allow_html=True)
-
-    # 8. Enriquecimiento
-    st.markdown("### 8️⃣ Enriquecimiento del Dataset")
-    
-    st.markdown("#### Variable `edad_buque`")
-    st.markdown("""
-    <div class="quality-check">
-        <strong>Creación:</strong> Antigüedad desde fecha de alta hasta fecha de baja (o actual si está activo)<br>
-        <strong>Utilidad:</strong> Análisis de ciclo de vida, estudios de renovación, políticas de reemplazo
-    </div>
-    """, unsafe_allow_html=True)
-
-    st.code("""
-# Cálculo de edad
-df['Edad_buque'] = np.where(
-    df['fc_estado'].notna(),
-    (df['fc_estado'] - df['fc_alta_rgfp']).dt.days / 365.25,
-    (pd.Timestamp.now() - df['fc_alta_rgfp']).dt.days / 365.25
-)
-    """, language='python')
-
-    # Resumen final
-    st.markdown("## ✅ Resumen del Control de Calidad")
-    
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        st.markdown("""
-        <div class="recommendation-box">
-            <strong>Integridad de Datos</strong><br>
-            ✓ Sin duplicados<br>
-            ✓ Valores 0 imputados<br>
-            ✓ Outliers válidos identificados<br>
-            ✓ 100% registros con CFR único
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with col2:
-        st.markdown("""
-        <div class="recommendation-box">
-            <strong>Consistencia</strong><br>
-            ✓ Tipos de dato correctos<br>
-            ✓ Nombres estandarizados<br>
-            ✓ Fechas en formato datetime<br>
-            ✓ Unidades homogéneas
-        </div>
-        """, unsafe_allow_html=True)
-    
-    with col3:
-        st.markdown("""
-        <div class="recommendation-box">
-            <strong>Enriquecimiento</strong><br>
-            ✓ Variables derivadas creadas<br>
-            ✓ Categorización aplicada<br>
-            ✓ Descomposición geográfica<br>
-            ✓ Clasificación por arte
-        </div>
-        """, unsafe_allow_html=True)
 # ============================================
 # TAB 7: CONCLUSIONES
 # ============================================
