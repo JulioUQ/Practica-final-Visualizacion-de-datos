@@ -11,12 +11,14 @@
             "id": "90d352a944a59064",
             "type": "leaf",
             "state": {
-              "type": "pdf",
+              "type": "markdown",
               "state": {
-                "file": "6. PEC Final/UBEDAQUESADAJULIO_Parte-1_ Seleccion-del-conjunto-de-datos.pdf"
+                "file": "README.md",
+                "mode": "source",
+                "source": false
               },
-              "icon": "lucide-file-text",
-              "title": "UBEDAQUESADAJULIO_Parte-1_ Seleccion-del-conjunto-de-datos"
+              "icon": "lucide-file",
+              "title": "README"
             }
           }
         ]
@@ -92,7 +94,7 @@
             "state": {
               "type": "backlink",
               "state": {
-                "file": "6. PEC Final/UBEDAQUESADAJULIO_Parte-1_ Seleccion-del-conjunto-de-datos.pdf",
+                "file": "README.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -102,7 +104,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "Enlaces entrantes de UBEDAQUESADAJULIO_Parte-1_ Seleccion-del-conjunto-de-datos"
+              "title": "Enlaces entrantes de README"
             }
           },
           {
@@ -111,12 +113,12 @@
             "state": {
               "type": "outgoing-link",
               "state": {
-                "file": "6. PEC Final/UBEDAQUESADAJULIO_Parte-1_ Seleccion-del-conjunto-de-datos.pdf",
+                "file": "README.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               },
               "icon": "links-going-out",
-              "title": "Enlaces salientes de UBEDAQUESADAJULIO_Parte-1_ Seleccion-del-conjunto-de-datos"
+              "title": "Enlaces salientes de README"
             }
           },
           {
@@ -154,13 +156,13 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "6. PEC Final/UBEDAQUESADAJULIO_Parte-1_ Seleccion-del-conjunto-de-datos.pdf",
+                "file": "README.md",
                 "followCursor": false,
                 "showSearch": false,
                 "searchQuery": ""
               },
               "icon": "lucide-list",
-              "title": "Esquema de UBEDAQUESADAJULIO_Parte-1_ Seleccion-del-conjunto-de-datos"
+              "title": "Esquema de README"
             }
           }
         ]
@@ -183,15 +185,17 @@
   },
   "active": "90d352a944a59064",
   "lastOpenFiles": [
+    "dashboard_flota v2.py",
+    "dashboard_flota copy.py",
+    "6. PEC Final/UBEDAQUESADAJULIO_Parte-1_ Seleccion-del-conjunto-de-datos.pdf",
+    "7. Visualizaciones/evolucion_flota.html",
+    "7. Visualizaciones/mapa_ccaa_Nbuques_rapido.html",
     "requirements.txt",
     "utils/generar_requirements.py",
     "generar_requirements.py",
     "requirements.py",
     "dashboard_flota.py",
     "Dashboard_v1.py",
-    "5. Scripts/CodigoPEC4.py",
-    "CodigoPEC4.py",
-    "3. Datos/datos_buques_ESP.csv",
     "README.md"
   ]
 }
