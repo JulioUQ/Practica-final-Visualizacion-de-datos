@@ -640,6 +640,7 @@ with tab2:
         """, unsafe_allow_html=True)
 
 # TAB 3: DISTRIBUCIÓN GEOGRÁFICA
+# TAB 3: DISTRIBUCIÓN GEOGRÁFICA
 with tab3:
     st.markdown("""
     <div class="chapter-intro">
@@ -650,85 +651,101 @@ with tab3:
 
     st.markdown("### 🗺️ Mapa de Distribución por Comunidad Autónoma")
 
-    # Verificamos que gdf_ccaa (el mapa base limpio) esté cargado
+    # Selector de métrica
+    metric_mode = st.radio(
+        "Selecciona la métrica a visualizar en el mapa:",
+        ["Número de Buques", "Eslora Media", "Potencia Media", "Arqueo Medio"],
+        horizontal=True
+    )
+
+    # Configuración de métricas (columna dato, función agregación, nombre columna final, paleta color, formato tooltip)
+    metrics_config = {
+        "Número de Buques": {"col": "cfr", "func": "count", "label": "Num_Buques", "color": "YlOrRd", "alias": "Buques:"},
+        "Eslora Media": {"col": "eslora_total", "func": "mean", "label": "Eslora_Media", "color": "BuGn", "alias": "Eslora Media (m):"},
+        "Potencia Media": {"col": "potencia_kw", "func": "mean", "label": "Potencia_Media", "color": "Oranges", "alias": "Potencia Media (kW):"},
+        "Arqueo Medio": {"col": "arqueo_gt", "func": "mean", "label": "Arqueo_Medio", "color": "Reds", "alias": "Arqueo Medio (GT):"}
+    }
+    
+    cfg = metrics_config[metric_mode]
+
+    # Verificamos que gdf_ccaa esté cargado
     if gdf_ccaa is not None:
         try:
-            # 1. Agrupar datos (Pandas): Contar buques por comunidad
-            df_conteo = (
-                data_filtered['Comunidad Autónoma']
-                .value_counts()
-                .reset_index()
-            )
-            df_conteo.columns = ['link_key', 'Num_Buques']
+            # 1. Agrupar datos según la métrica seleccionada
+            if cfg["func"] == "count":
+                df_agg = data_filtered['Comunidad Autónoma'].value_counts().reset_index()
+                df_agg.columns = ['link_key', cfg["label"]]
+            else:
+                df_agg = data_filtered.groupby('Comunidad Autónoma')[cfg["col"]].mean().reset_index()
+                df_agg.columns = ['link_key', cfg["label"]]
+                df_agg[cfg["label"]] = df_agg[cfg["label"]].round(2) # Redondear decimales
 
-            # 2. Preparar el mapa: Usar una COPIA del mapa base (solo 17-19 filas)
+            # 2. Preparar el mapa: Usar una COPIA del mapa base
             gdf_map = gdf_ccaa.copy()
             
-            # 3. Unir el conteo a las geometrías únicas
-            # Esto mantiene solo 1 fila por comunidad, no 1 por barco
+            # 3. Unir datos: USAR 'inner' PARA MOSTRAR SOLO GEOMETRÍAS CON DATOS
             gdf_map = gdf_map.merge(
-                df_conteo,
+                df_agg,
                 on='link_key',
-                how='left'
+                how='inner'  # <--- Esto filtra las comunidades que no están en df_agg
             )
             
-            # Rellenar nulos con 0 para que no queden agujeros en el mapa
-            gdf_map['Num_Buques'] = gdf_map['Num_Buques'].fillna(0)
+            if len(gdf_map) > 0:
+                # 4. Generar mapa Folium
+                m = folium.Map(location=[40, -3.5], zoom_start=6, tiles="CartoDB positron")
 
-            # 4. Generar mapa Folium optimizado
-            m = folium.Map(location=[40, -3.5], zoom_start=6, tiles="CartoDB positron")
+                folium.Choropleth(
+                    geo_data=gdf_map,
+                    data=gdf_map,
+                    columns=['link_key', cfg["label"]],
+                    key_on='feature.properties.link_key',
+                    fill_color=cfg["color"],
+                    fill_opacity=0.7,
+                    line_opacity=0.2,
+                    legend_name=metric_mode,
+                    highlight=True
+                ).add_to(m)
 
-            folium.Choropleth(
-                geo_data=gdf_map,              # Geometrías (solo 17 polígonos)
-                data=gdf_map,                  # Datos
-                columns=['link_key', 'Num_Buques'],
-                key_on='feature.properties.link_key',
-                fill_color='YlOrRd',
-                fill_opacity=0.7,
-                line_opacity=0.2,
-                legend_name='Número de Buques',
-                highlight=True
-            ).add_to(m)
+                # Tooltip dinámico según la métrica
+                folium.GeoJson(
+                    gdf_map,
+                    style_function=lambda x: {'fillColor': '#00000000', 'color': '#00000000'},
+                    tooltip=folium.GeoJsonTooltip(
+                        fields=['link_key', cfg["label"]],
+                        aliases=['Comunidad:', cfg["alias"]],
+                        localize=True
+                    )
+                ).add_to(m)
 
-            # Añadir tooltips interactivos (opcional, pero muy útil)
-            folium.GeoJson(
-                gdf_map,
-                style_function=lambda x: {'fillColor': '#00000000', 'color': '#00000000'},
-                tooltip=folium.GeoJsonTooltip(
-                    fields=['link_key', 'Num_Buques'],
-                    aliases=['Comunidad:', 'Buques:'],
-                    localize=True
-                )
-            ).add_to(m)
-
-            folium_static(m, width=1200, height=600)
+                folium_static(m, width=1200, height=600)
+            else:
+                st.warning("No hay datos geográficos disponibles para los filtros seleccionados.")
 
         except Exception as e:
             st.error(f"Error detallado: {e}")
             st.warning("Mostrando gráfico alternativo por error en mapa.")
             
-            # Gráfico alternativo (fallback)
-            dist_ccaa = data_filtered['Comunidad Autónoma'].value_counts().reset_index()
-            dist_ccaa.columns = ['comunidad', 'num_buques']
-            fig_ccaa = px.bar(dist_ccaa, x='comunidad', y='num_buques')
-            st.plotly_chart(fig_ccaa, use_container_width=True)
+            # Gráfico alternativo
+            df_chart = df_agg.sort_values(cfg["label"], ascending=False)
+            fig_alt = px.bar(df_chart, x='link_key', y=cfg["label"], 
+                             title=f'{metric_mode} por Comunidad',
+                             labels={'link_key': 'Comunidad'})
+            st.plotly_chart(fig_alt, use_container_width=True)
 
     else:
         st.info("Shapefiles no disponibles.")
+        
+        # Lógica alternativa si no hay shapefiles
+        if cfg["func"] == "count":
+            df_agg = data_filtered['Comunidad Autónoma'].value_counts().reset_index()
+            df_agg.columns = ['link_key', cfg["label"]]
+        else:
+            df_agg = data_filtered.groupby('Comunidad Autónoma')[cfg["col"]].mean().reset_index()
+            df_agg.columns = ['link_key', cfg["label"]]
 
-        dist_ccaa = data_filtered['Comunidad Autónoma'].value_counts().reset_index()
-        dist_ccaa.columns = ['comunidad', 'num_buques']
-
-        fig_ccaa_alt = px.bar(
-            dist_ccaa,
-            x='comunidad',
-            y='num_buques',
-            title='Distribución de la Flota por Comunidad Autónoma',
-            color='num_buques',
-            color_continuous_scale='Viridis'
-        )
-
-        st.plotly_chart(fig_ccaa_alt, use_container_width=True)
+        fig_alt = px.bar(df_agg, x='link_key', y=cfg["label"], 
+                         title=f'{metric_mode} por Comunidad', color=cfg["label"])
+        st.plotly_chart(fig_alt, use_container_width=True)
 
     # Edad media por CCAA
     st.markdown("### 📊 Edad Media por Comunidad Autónoma")
