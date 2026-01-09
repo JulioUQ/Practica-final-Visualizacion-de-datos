@@ -778,30 +778,77 @@ with tab3:
     )
     st.plotly_chart(fig_edad_ccaa, use_container_width=True)
 
-    # NUEVO: Treemap de puertos
+    # Treemap de puertos
     st.markdown("### ⚓ Distribución de Flota por Puerto y Comunidad")
     
-    top_puertos = data_filtered['Puerto'].value_counts().head(30).index
-    data_treemap = data_filtered[data_filtered['Puerto'].isin(top_puertos)].copy()
+    # 1. Selector de métrica para el Treemap
+    # Usamos una key única para no chocar con el selector del mapa anterior
+    treemap_mode = st.radio(
+        "Selecciona la dimensión para el tamaño de los bloques:",
+        ["Número de Buques", "Eslora Total", "Potencia Total", "Arqueo Total"],
+        horizontal=True,
+        key="treemap_selector"
+    )
+
+    # 2. Configuración de columnas
+    # Nota: En Treemaps, el tamaño suele representar el TOTAL (Suma), no la media.
+    tm_config = {
+        "Número de Buques": {"col": "cfr", "label": "Num_Buques"},
+        "Eslora Total": {"col": "eslora_total", "label": "Eslora_Total_m"},
+        "Potencia Total": {"col": "potencia_kw", "label": "Potencia_Total_kW"},
+        "Arqueo Total": {"col": "arqueo_gt", "label": "Arqueo_Total_GT"}
+    }
     
+    tm_cfg = tm_config[treemap_mode]
+
+    # 3. Procesamiento de datos (Agrupación dinámica)
+    # Agrupamos por Comunidad y Puerto para calcular el valor total de cada uno
+    if treemap_mode == "Número de Buques":
+        # Contamos filas
+        df_treemap = (
+            data_filtered
+            .groupby(['Comunidad Autónoma', 'Puerto'])
+            .size()
+            .reset_index(name='valor')
+        )
+    else:
+        # Sumamos la columna correspondiente (Ej: Suma de toda la potencia del puerto)
+        df_treemap = (
+            data_filtered
+            .groupby(['Comunidad Autónoma', 'Puerto'])[tm_cfg['col']]
+            .sum()
+            .reset_index(name='valor')
+        )
+
+    # 4. Filtrar los Top 30 Puertos SEGÚN LA MÉTRICA SELECCIONADA
+    # Esto asegura que si eliges "Potencia", salgan los puertos más potentes, no solo los más numerosos
+    df_treemap_top = df_treemap.sort_values('valor', ascending=False).head(30)
+
+    # 5. Generar el gráfico
     fig_treemap = px.treemap(
-        data_treemap,
+        df_treemap_top,
         path=['Comunidad Autónoma', 'Puerto'],
-        values='eslora_total',
-        title='Distribución de Flota por Puerto (tamaño por eslora total)',
+        values='valor',
+        title=f'Top 30 Puertos por {treemap_mode}',
         color='Comunidad Autónoma',
-        color_discrete_sequence=px.colors.qualitative.Set3
+        color_discrete_sequence=px.colors.qualitative.Set3,
+        hover_data={'valor': ':.2f'} # Formato numérico
     )
     
-    fig_treemap.update_layout(height=600)
-    fig_treemap.update_traces(textinfo="label+value")
+    # Personalizar tooltips y etiquetas
+    fig_treemap.update_traces(
+        textinfo="label+value",
+        hovertemplate='<b>%{label}</b><br>Comunidad: %{parent}<br>Value: %{value:,.0f}<extra></extra>'
+    )
+    
+    fig_treemap.update_layout(height=600, margin=dict(t=50, l=25, r=25, b=25))
     st.plotly_chart(fig_treemap, use_container_width=True)
     
     st.markdown("""
     <div class="insight-box">
-        <strong>💡 Insight Clave:</strong> El treemap revela la <strong>jerarquía portuaria</strong> 
-        y la concentración de actividad. Los puertos más grandes por eslora total no siempre coinciden 
-        con los de mayor número de embarcaciones, revelando diferentes perfiles operativos.
+        <strong>💡 Insight Clave:</strong> El tamaño de los recuadros representa el <strong>volumen total</strong> 
+        de la métrica seleccionada en ese puerto. Observa cómo cambia la jerarquía: puertos con pocos barcos 
+        (cuadros pequeños en "Número") pueden volverse enormes en "Arqueo" si tienen buques industriales grandes.
     </div>
     """, unsafe_allow_html=True)
 
