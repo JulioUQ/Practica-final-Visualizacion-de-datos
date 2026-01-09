@@ -21,3 +21,5 @@ Adjuntamos una guía que os puede ser útil para guiaros en el proceso de selecc
 ● CE6- Uso avanzado de las herramientas de software estadístico adecuadas para los distintos problemas de modelización, análisis y visualización de datos.
 
 ● CE11- Ser capaz de aplicar técnicas para la generación de visualizaciones (estáticas e interactivas) adecuada a cada problema para el análisis y exploración de datos y la correcta comunicación de los resultados del análisis.
+
+ Los datos geoespaciales se gestionan mediante Git LFS debido a su tamaño.
