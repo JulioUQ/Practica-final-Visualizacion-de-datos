@@ -567,7 +567,7 @@ with tab2:
     </div>
     """, unsafe_allow_html=True)
 
-    # NUEVO: Evolución de características por CCAA
+    # Evolución de características por CCAA
     st.markdown("### 📊 Evolución de Características Técnicas por CCAA (1987-2025)")
     
     # Seleccionar CCAA para análisis
@@ -592,7 +592,7 @@ with tab2:
             subplot_titles=('Evolución Eslora Media (m)', 
                           'Evolución Potencia Media (kW)',
                           'Evolución Arqueo Medio (GT)'),
-            vertical_spacing=0.08
+            vertical_spacing=0.12
         )
         
         colors = px.colors.qualitative.Bold
@@ -822,14 +822,13 @@ with tab3:
 
     # 4. Filtrar los Top 30 Puertos SEGÚN LA MÉTRICA SELECCIONADA
     # Esto asegura que si eliges "Potencia", salgan los puertos más potentes, no solo los más numerosos
-    df_treemap_top = df_treemap.sort_values('valor', ascending=False).head(30)
-
+    df_treemap_top = df_treemap.sort_values('valor', ascending=False)
     # 5. Generar el gráfico
     fig_treemap = px.treemap(
         df_treemap_top,
         path=['Comunidad Autónoma', 'Puerto'],
         values='valor',
-        title=f'Top 30 Puertos por {treemap_mode}',
+        title=f'Puertos por {treemap_mode}',
         color='Comunidad Autónoma',
         color_discrete_sequence=px.colors.qualitative.Set3,
         hover_data={'valor': ':.2f'} # Formato numérico
