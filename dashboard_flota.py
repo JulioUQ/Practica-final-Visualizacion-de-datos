@@ -1,3 +1,5 @@
+# Usa streamlit run dashboard_flota.py para ejecutar el dashboard
+
 import streamlit as st
 import pandas as pd
 import plotly.express as px
