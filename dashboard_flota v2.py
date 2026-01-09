@@ -884,7 +884,7 @@ with tab4:
         yaxis_title='Porcentaje de Buques (%)',
         barmode='stack',
         height=600,
-        legend=dict(orientation="v", yanchor="top", y=0.99, xanchor="right", x=1.08)
+        legend=dict(orientation="v", yanchor="top", y=0.99, xanchor="right", x=1.12)
     )
     fig_ccaa_arte.update_xaxes(tickangle=45)
     st.plotly_chart(fig_ccaa_arte, use_container_width=True)
@@ -926,14 +926,18 @@ with tab4:
             row=1, col=3
         )
 
-    fig_arte_caract.update_yaxes(title_text="Metros", row=1, col=1, type="log")
-    fig_arte_caract.update_yaxes(title_text="kW", row=1, col=2, type="log")
-    fig_arte_caract.update_yaxes(title_text="GT", row=1, col=3, type="log")
+    fig_arte_caract.update_yaxes(title_text="Metros", row=1, col=1)
+    fig_arte_caract.update_yaxes(title_text="kW", row=1, col=2)
+    fig_arte_caract.update_yaxes(title_text="GT", row=1, col=3)
+
+    fig_arte_caract.update_xaxes(title_text="", row=1, col=1)
+    fig_arte_caract.update_xaxes(title_text="", row=1, col=2)
+    fig_arte_caract.update_xaxes(title_text="", row=1, col=3)
 
     fig_arte_caract.update_layout(
         height=500,
         showlegend=True,
-        legend=dict(orientation="h", yanchor="bottom", y=-0.2, xanchor="center", x=0.5)
+        legend=dict(orientation="h", yanchor="bottom", y=-0.4, xanchor="center", x=0.5)
     )
     st.plotly_chart(fig_arte_caract, use_container_width=True)
 
@@ -1524,7 +1528,15 @@ with tab7:
         yaxis=dict(title='Número de Altas', side='left'),
         yaxis2=dict(title='Eslora Media (m)', overlaying='y', side='right'),
         height=400,
-        hovermode='x unified'
+        hovermode='x unified',
+        legend=dict(
+            orientation="v",
+            yanchor="top",
+            y=1,
+            xanchor="left",
+            x=1.05
+        ),
+        margin=dict(r=120)
     )
     
     st.plotly_chart(fig_comparativa, use_container_width=True)
