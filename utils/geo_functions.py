@@ -36,6 +36,9 @@ def gdf_gsa() -> gpd.GeoDataFrame:
     gdf = gpd.read_file(ruta_gsa)
     return gdf.to_crs(epsg=4326) if gdf.crs else gdf.set_crs(epsg=4326)
 
+
+
+
 # ====================================
 # FUNCIONES DE GEOPANDAS / ESPACIALES
 # ====================================
