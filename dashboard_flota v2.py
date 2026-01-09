@@ -264,7 +264,7 @@ st.markdown('<div class="subtitle">38 Años de Historia Naval (1987-2025)</div>'
 st.markdown("---")
 
 # TABS - CAPÍTULOS
-tab1, tab7, tab2, tab3, tab4, tab5, tab6 = st.tabs([
+tab1, tab6, tab2, tab3, tab4, tab5, tab7 = st.tabs([
     "🏠 Panorama General",
     "✅ Control de Calidad",
     "⏱️ Evolución Temporal",
