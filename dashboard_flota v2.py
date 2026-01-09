@@ -91,9 +91,20 @@ st.markdown("""
 
 # Rutas base
 BASE_DIR = Path(__file__).resolve().parent
+
 DATA_CSV = BASE_DIR / "3. Datos" / "SpanishFishingFleetHistory.csv"
-SHP_PENINBAL = BASE_DIR / "3. Datos" / "SHP_ETRS89" / "recintos_autonomicas_inspire_peninbal_etrs89" / "recintos_autonomicas_inspire_peninbal_etrs89.shp"
-SHP_REGCAN = BASE_DIR / "3. Datos" / "SHP_REGCAN95" / "recintos_autonomicas_inspire_canarias_regcan95" / "recintos_autonomicas_inspire_canarias_regcan95.shp"
+
+SHP_PENINBAL = (
+    BASE_DIR / "3. Datos" / "SHP_ETRS89"
+    / "recintos_autonomicas_inspire_peninbal_etrs89"
+    / "recintos_autonomicas_inspire_peninbal_etrs89.shp"
+)
+
+SHP_REGCAN = (
+    BASE_DIR / "3. Datos" / "SHP_REGCAN95"
+    / "recintos_autonomicas_inspire_canarias_regcan95"
+    / "recintos_autonomicas_inspire_canarias_regcan95.shp"
+)
 
 # =======================
 # Cargar CSV
@@ -101,79 +112,95 @@ SHP_REGCAN = BASE_DIR / "3. Datos" / "SHP_REGCAN95" / "recintos_autonomicas_insp
 @st.cache_data
 def load_data():
     df = pd.read_csv(DATA_CSV)
+
     df['fc_alta_rgfp'] = pd.to_datetime(df['fc_alta_rgfp'], dayfirst=True, errors='coerce')
     df['fc_estado'] = pd.to_datetime(df['fc_estado'], dayfirst=True, errors='coerce')
+
     df['anio_alta'] = df['fc_alta_rgfp'].dt.year
+
     df['categoria_edad'] = pd.cut(
         df['Edad_buque'],
         bins=[-1, 10, 20, 30, 40],
         labels=['0-10 años', '11-20 años', '21-30 años', '>30 años']
     )
+
     df['categoria_eslora'] = pd.cut(
         df['eslora_total'],
         bins=[0, 10, 15, 20, 120],
         labels=['Pequeño (<10m)', 'Mediano (10-15m)', 'Grande (15-20m)', 'Muy Grande (>20m)']
     )
+
     return df
 
+
 data = load_data()
+data_filtered = data.copy()  # aquí puedes aplicar filtros si los tienes
 
 # =======================
-# Cargar shapefiles
+# Cargar y preparar shapefiles
 # =======================
 @st.cache_data
 def load_geo_data():
-    try:
-        gdf_peninbal = gpd.read_file(SHP_PENINBAL)
-        gdf_canarias = gpd.read_file(SHP_REGCAN)
 
-        # Transformar ambos a CRS común (WGS84)
-        gdf_peninbal = gdf_peninbal.to_crs(epsg=4326)
-        gdf_canarias = gdf_canarias.to_crs(epsg=4326)
+    gdf_peninbal = gpd.read_file(SHP_PENINBAL)
+    gdf_canarias = gpd.read_file(SHP_REGCAN)
 
-        # Seleccionar columnas y renombrar
-        gdf_peninbal_sel = gdf_peninbal.rename(columns={'NAMEUNIT': 'comunidad'})[['comunidad', 'geometry']]
-        gdf_canarias_sel = gdf_canarias.rename(columns={'NAMEUNIT': 'comunidad'})[['comunidad', 'geometry']]
+    # CRS común
+    gdf_peninbal = gdf_peninbal.to_crs(epsg=4326)
+    gdf_canarias = gdf_canarias.to_crs(epsg=4326)
 
-        # Concatenar manteniendo GeoDataFrame
-        gdf_ccaa = gpd.GeoDataFrame(pd.concat([gdf_peninbal_sel, gdf_canarias_sel], ignore_index=True), geometry='geometry', crs=gdf_peninbal.crs)
+    # Selección y renombrado
+    gdf_peninbal = gdf_peninbal.rename(columns={'NAMEUNIT': 'comunidad'})[
+        ['comunidad', 'geometry']
+    ]
 
-        # Diccionario de mapeo
-        mapa_a_datos = {
-            'Principado de Asturias': 'Asturias',
-            'Illes Balears': 'Illes balears',
-            'Cataluña/Catalunya': 'Cataluña',
-            'Región de Murcia': 'Murcia',
-            'País Vasco/Euskadi': 'País Vasco',
-            'Ciudad Autónoma de Ceuta': 'Ceuta',
-            'Ciudad Autónoma de Melilla': 'Melilla',
-            'Comunitat Valenciana': 'Comunitat Valenciana',
-            'Galicia': 'Galicia',
-            'Cantabria': 'Cantabria',
-            'Andalucía': 'Andalucía',
-            'Canarias': 'Canarias',
-            'Castilla y León': 'Castilla y León',
-            'Castilla-La Mancha': 'Castilla-La Mancha',
-            'Aragón': 'Aragón',
-            'Comunidad de Madrid': 'Madrid',
-            'Comunidad Foral de Navarra': 'Navarra',
-            'La Rioja': 'La Rioja',
-            'Extremadura': 'Extremadura'
-        }
+    gdf_canarias = gdf_canarias.rename(columns={'NAMEUNIT': 'comunidad'})[
+        ['comunidad', 'geometry']
+    ]
 
-        # Aplicar mapeo y generar link_key
-        gdf_ccaa['link_key'] = gdf_ccaa['comunidad'].replace(mapa_a_datos)
+    # Concatenar
+    gdf_ccaa = gpd.GeoDataFrame(
+        pd.concat([gdf_peninbal, gdf_canarias], ignore_index=True),
+        geometry='geometry',
+        crs='EPSG:4326'
+    )
 
-        # Simplificar geometrías para mejorar rendimiento
-        gdf_ccaa['geometry'] = gdf_ccaa['geometry'].simplify(tolerance=0.005, preserve_topology=True)
+    # Mapeo a nombres del CSV
+    mapa_a_datos = {
+        'Principado de Asturias': 'Asturias',
+        'Illes Balears': 'Illes balears',
+        'Cataluña/Catalunya': 'Cataluña',
+        'Región de Murcia': 'Murcia',
+        'País Vasco/Euskadi': 'País Vasco',
+        'Ciudad Autónoma de Ceuta': 'Ceuta',
+        'Ciudad Autónoma de Melilla': 'Melilla',
+        'Comunitat Valenciana': 'Comunitat Valenciana',
+        'Galicia': 'Galicia',
+        'Cantabria': 'Cantabria',
+        'Andalucía': 'Andalucía',
+        'Canarias': 'Canarias',
+        'Castilla y León': 'Castilla y León',
+        'Castilla-La Mancha': 'Castilla-La Mancha',
+        'Aragón': 'Aragón',
+        'Comunidad de Madrid': 'Madrid',
+        'Comunidad Foral de Navarra': 'Navarra',
+        'La Rioja': 'La Rioja',
+        'Extremadura': 'Extremadura'
+    }
 
-        return gdf_ccaa
+    gdf_ccaa['link_key'] = gdf_ccaa['comunidad'].replace(mapa_a_datos)
 
-    except Exception as e:
-        st.error(f"Error cargando shapefiles: {e}")
-        return None
+    # Simplificar geometrías
+    gdf_ccaa['geometry'] = gdf_ccaa['geometry'].simplify(
+        tolerance=0.005,
+        preserve_topology=True
+    )
+
+    return gdf_ccaa
+
 
 gdf_ccaa = load_geo_data()
+
 
 # De table1 (data) queremos todas las columnas
 table1 = data.copy()
@@ -622,33 +649,34 @@ with tab3:
     """, unsafe_allow_html=True)
 
     st.markdown("### 🗺️ Mapa de Distribución por Comunidad Autónoma")
-    
-    # Crear mapa Folium
+
     if gdf_ccaa is not None:
+
         try:
-            # Unir datos con geometrías
-            data_geo = data_filtered.copy()
-            data_geo['link_key'] = data_geo['Comunidad Autónoma']
-            
-            # Contar buques por CCAA
-            df_conteo = data_geo.groupby('link_key')['cfr'].count().reset_index()
+            # Conteo de buques por CCAA
+            df_conteo = (
+                data_filtered
+                .groupby('Comunidad Autónoma')['cfr']
+                .count()
+                .reset_index()
+            )
+
             df_conteo.columns = ['link_key', 'Num_Buques']
-            
-            # Preparar geometrías
-            gdf_map = gdf_ccaa.copy()
-            gdf_map['link_key'] = gdf_map['comunidad']
-            gdf_map['geometry'] = gdf_map.simplify(tolerance=0.005, preserve_topology=True)
-            
-            # Unir datos
-            gdf_map = gdf_map.merge(df_conteo, on='link_key', how='left')
+
+            # Unir conteo con geometrías
+            gdf_map = gdf_ccaa.merge(
+                df_conteo,
+                on='link_key',
+                how='left'
+            )
+
             gdf_map['Num_Buques'] = gdf_map['Num_Buques'].fillna(0)
-            
+
             # Crear mapa
             m = folium.Map(location=[40, -3.5], zoom_start=6)
-            
+
             folium.Choropleth(
                 geo_data=gdf_map,
-                name='choropleth',
                 data=gdf_map,
                 columns=['link_key', 'Num_Buques'],
                 key_on='feature.properties.link_key',
@@ -657,44 +685,37 @@ with tab3:
                 line_opacity=0.2,
                 legend_name='Número de Buques'
             ).add_to(m)
-            
-            # Mostrar mapa
+
             folium_static(m, width=1200, height=600)
-            
+
         except Exception as e:
-            st.warning(f"No se pudieron cargar los shapefiles. Mostrando gráfico alternativo. Error: {str(e)}")
-            # Gráfico alternativo
+            st.warning(f"Error al generar el mapa. Mostrando gráfico alternativo.\n{e}")
+
             dist_ccaa = data_filtered['Comunidad Autónoma'].value_counts().reset_index()
             dist_ccaa.columns = ['comunidad', 'num_buques']
-            dist_ccaa['porcentaje'] = (dist_ccaa['num_buques'] / dist_ccaa['num_buques'].sum() * 100).round(1)
-            
+
             fig_ccaa = go.Figure()
             fig_ccaa.add_trace(go.Bar(
                 x=dist_ccaa['comunidad'],
-                y=dist_ccaa['num_buques'],
-                text=dist_ccaa['porcentaje'].apply(lambda x: f'{x}%'),
-                textposition='outside',
-                marker=dict(
-                    color=dist_ccaa['num_buques'],
-                    colorscale='Viridis',
-                    showscale=True,
-                    colorbar=dict(title="Buques")
-                )
+                y=dist_ccaa['num_buques']
             ))
-            
+
             fig_ccaa.update_layout(
                 title='Distribución de la Flota por Comunidad Autónoma',
                 xaxis_title='Comunidad Autónoma',
                 yaxis_title='Número de Buques',
                 height=500
             )
+
             fig_ccaa.update_xaxes(tickangle=45)
             st.plotly_chart(fig_ccaa, use_container_width=True)
+
     else:
-        st.info("Shapefiles no disponibles. Instalando alternativa...")
+        st.info("Shapefiles no disponibles. Mostrando gráfico alternativo.")
+
         dist_ccaa = data_filtered['Comunidad Autónoma'].value_counts().reset_index()
         dist_ccaa.columns = ['comunidad', 'num_buques']
-        
+
         fig_ccaa_alt = px.bar(
             dist_ccaa,
             x='comunidad',
@@ -703,6 +724,7 @@ with tab3:
             color='num_buques',
             color_continuous_scale='Viridis'
         )
+
         st.plotly_chart(fig_ccaa_alt, use_container_width=True)
 
     # Edad media por CCAA
