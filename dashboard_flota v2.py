@@ -89,14 +89,18 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Cargar datos
+# Rutas base
 BASE_DIR = Path(__file__).resolve().parent
-DATA_PATH = BASE_DIR / "3. Datos" / "SpanishFishingFleetHistory.csv"
+DATA_CSV = BASE_DIR / "3. Datos" / "SpanishFishingFleetHistory.csv"
+SHP_PENINBAL = BASE_DIR / "3. Datos" / "SHP_ETRS89" / "recintos_autonomicas_inspire_peninbal_etrs89" / "recintos_autonomicas_inspire_peninbal_etrs89.shp"
+SHP_REGCAN = BASE_DIR / "3. Datos" / "SHP_REGCAN95" / "recintos_autonomicas_inspire_canarias_regcan95" / "recintos_autonomicas_inspire_canarias_regcan95.shp"
 
-# Cargar datos
+# =======================
+# Cargar CSV
+# =======================
 @st.cache_data
 def load_data():
-    df = pd.read_csv(DATA_PATH)
+    df = pd.read_csv(DATA_CSV)
     df['fc_alta_rgfp'] = pd.to_datetime(df['fc_alta_rgfp'], dayfirst=True, errors='coerce')
     df['fc_estado'] = pd.to_datetime(df['fc_estado'], dayfirst=True, errors='coerce')
     df['anio_alta'] = df['fc_alta_rgfp'].dt.year
@@ -114,28 +118,23 @@ def load_data():
 
 data = load_data()
 
-# Cargar shapefiles (opcional, solo si existen)
+# =======================
+# Cargar shapefiles
+# =======================
 @st.cache_data
 def load_geo_data():
     try:
-        # Ajusta estas rutas según tu estructura de carpetas en Streamlit
-        # NOTA: En Streamlit Cloud o servidores, a veces las rutas relativas '..' fallan.
-        # Intenta usar rutas desde la raíz del proyecto o os.path.join
-        path_ccaa_peninbal = r'..\3. Datos\SHP_ETRS89\recintos_autonomicas_inspire_peninbal_etrs89\recintos_autonomicas_inspire_peninbal_etrs89.shp'
-        path_ccaa_regcan = r'..\3. Datos\SHP_REGCAN95\recintos_autonomicas_inspire_canarias_regcan95\recintos_autonomicas_inspire_canarias_regcan95.shp'
+        gdf_peninbal = gpd.read_file(SHP_PENINBAL)
+        gdf_canarias = gpd.read_file(SHP_REGCAN)
 
-        # Carga directa con Geopandas (o usa tu libreria gf si la tienes importada)
-        gdf_peninbal = gpd.read_file(path_ccaa_peninbal)
-        gdf_canarias = gpd.read_file(path_ccaa_regcan)
-
-        # Renombrar y seleccionar
+        # Seleccionar columnas y renombrar
         gdf_peninbal_sel = gdf_peninbal.rename(columns={'NAMEUNIT': 'comunidad'})[['comunidad', 'geometry']]
         gdf_canarias_sel = gdf_canarias.rename(columns={'NAMEUNIT': 'comunidad'})[['comunidad', 'geometry']]
 
-        # Concatenar
-        gdf_ccaa = pd.concat([gdf_peninbal_sel, gdf_canarias_sel], ignore_index=True)
+        # Concatenar manteniendo GeoDataFrame
+        gdf_ccaa = gpd.GeoDataFrame(pd.concat([gdf_peninbal_sel, gdf_canarias_sel], ignore_index=True), geometry='geometry', crs=gdf_peninbal.crs)
 
-        # Diccionario de corrección (CRUCIAL para que el cruce funcione)
+        # Diccionario de mapeo
         mapa_a_datos = {
             'Principado de Asturias': 'Asturias',
             'Illes Balears': 'Illes balears',
@@ -152,18 +151,18 @@ def load_geo_data():
             'Castilla y León': 'Castilla y León',
             'Castilla-La Mancha': 'Castilla-La Mancha',
             'Aragón': 'Aragón',
-            'Comunidad de Madrid': 'Madrid', # Ajustar según tus datos de buques
+            'Comunidad de Madrid': 'Madrid',
             'Comunidad Foral de Navarra': 'Navarra',
             'La Rioja': 'La Rioja',
             'Extremadura': 'Extremadura'
         }
-        
-        # Aplicar el diccionario y crear link_key
+
+        # Aplicar mapeo y generar link_key
         gdf_ccaa['link_key'] = gdf_ccaa['comunidad'].replace(mapa_a_datos)
-        
-        # Simplificar geometría AQUÍ para mejorar rendimiento general
-        gdf_ccaa['geometry'] = gdf_ccaa.simplify(tolerance=0.005, preserve_topology=True)
-        
+
+        # Simplificar geometrías para mejorar rendimiento
+        gdf_ccaa['geometry'] = gdf_ccaa['geometry'].simplify(tolerance=0.005, preserve_topology=True)
+
         return gdf_ccaa
 
     except Exception as e:
