@@ -202,23 +202,23 @@ def load_geo_data():
 gdf_ccaa = load_geo_data()
 
 
-# De table1 (data) queremos todas las columnas
-table1 = data.copy()
+# # De table1 (data) queremos todas las columnas
+# table1 = data.copy()
 
-# De table2 (gdf_ccaa) queremos solo 'geometry' + la columna clave 'link_key'
-table2 = gdf_ccaa[['link_key', 'geometry']].copy()
+# # De table2 (gdf_ccaa) queremos solo 'geometry' + la columna clave 'link_key'
+# table2 = gdf_ccaa[['link_key', 'geometry']].copy()
 
-# Merge
-df_resultante = pd.merge(
-    table1,
-    table2,
-    left_on='Comunidad Autónoma',
-    right_on='link_key',
-    how='inner' 
-)
+# # Merge
+# df_resultante = pd.merge(
+#     table1,
+#     table2,
+#     left_on='Comunidad Autónoma',
+#     right_on='link_key',
+#     how='inner' 
+# )
 
-# Convertir a GeoDataFrame
-gdf_ccaa = gpd.GeoDataFrame(df_resultante, geometry='geometry', crs=gdf_ccaa.crs)
+# # Convertir a GeoDataFrame
+# gdf_ccaa = gpd.GeoDataFrame(df_resultante, geometry='geometry', crs=gdf_ccaa.crs)
 
 # SIDEBAR - FILTROS
 st.sidebar.title("⚓ Filtros de Exploración")
@@ -650,68 +650,71 @@ with tab3:
 
     st.markdown("### 🗺️ Mapa de Distribución por Comunidad Autónoma")
 
+    # Verificamos que gdf_ccaa (el mapa base limpio) esté cargado
     if gdf_ccaa is not None:
-
         try:
-            # Conteo de buques por CCAA
+            # 1. Agrupar datos (Pandas): Contar buques por comunidad
             df_conteo = (
-                data_filtered
-                .groupby('Comunidad Autónoma')['cfr']
-                .count()
+                data_filtered['Comunidad Autónoma']
+                .value_counts()
                 .reset_index()
             )
-
             df_conteo.columns = ['link_key', 'Num_Buques']
 
-            # Unir conteo con geometrías
-            gdf_map = gdf_ccaa.merge(
+            # 2. Preparar el mapa: Usar una COPIA del mapa base (solo 17-19 filas)
+            gdf_map = gdf_ccaa.copy()
+            
+            # 3. Unir el conteo a las geometrías únicas
+            # Esto mantiene solo 1 fila por comunidad, no 1 por barco
+            gdf_map = gdf_map.merge(
                 df_conteo,
                 on='link_key',
                 how='left'
             )
-
+            
+            # Rellenar nulos con 0 para que no queden agujeros en el mapa
             gdf_map['Num_Buques'] = gdf_map['Num_Buques'].fillna(0)
 
-            # Crear mapa
-            m = folium.Map(location=[40, -3.5], zoom_start=6)
+            # 4. Generar mapa Folium optimizado
+            m = folium.Map(location=[40, -3.5], zoom_start=6, tiles="CartoDB positron")
 
             folium.Choropleth(
-                geo_data=gdf_map,
-                data=gdf_map,
+                geo_data=gdf_map,              # Geometrías (solo 17 polígonos)
+                data=gdf_map,                  # Datos
                 columns=['link_key', 'Num_Buques'],
                 key_on='feature.properties.link_key',
                 fill_color='YlOrRd',
                 fill_opacity=0.7,
                 line_opacity=0.2,
-                legend_name='Número de Buques'
+                legend_name='Número de Buques',
+                highlight=True
+            ).add_to(m)
+
+            # Añadir tooltips interactivos (opcional, pero muy útil)
+            folium.GeoJson(
+                gdf_map,
+                style_function=lambda x: {'fillColor': '#00000000', 'color': '#00000000'},
+                tooltip=folium.GeoJsonTooltip(
+                    fields=['link_key', 'Num_Buques'],
+                    aliases=['Comunidad:', 'Buques:'],
+                    localize=True
+                )
             ).add_to(m)
 
             folium_static(m, width=1200, height=600)
 
         except Exception as e:
-            st.warning(f"Error al generar el mapa. Mostrando gráfico alternativo.\n{e}")
-
+            st.error(f"Error detallado: {e}")
+            st.warning("Mostrando gráfico alternativo por error en mapa.")
+            
+            # Gráfico alternativo (fallback)
             dist_ccaa = data_filtered['Comunidad Autónoma'].value_counts().reset_index()
             dist_ccaa.columns = ['comunidad', 'num_buques']
-
-            fig_ccaa = go.Figure()
-            fig_ccaa.add_trace(go.Bar(
-                x=dist_ccaa['comunidad'],
-                y=dist_ccaa['num_buques']
-            ))
-
-            fig_ccaa.update_layout(
-                title='Distribución de la Flota por Comunidad Autónoma',
-                xaxis_title='Comunidad Autónoma',
-                yaxis_title='Número de Buques',
-                height=500
-            )
-
-            fig_ccaa.update_xaxes(tickangle=45)
+            fig_ccaa = px.bar(dist_ccaa, x='comunidad', y='num_buques')
             st.plotly_chart(fig_ccaa, use_container_width=True)
 
     else:
-        st.info("Shapefiles no disponibles. Mostrando gráfico alternativo.")
+        st.info("Shapefiles no disponibles.")
 
         dist_ccaa = data_filtered['Comunidad Autónoma'].value_counts().reset_index()
         dist_ccaa.columns = ['comunidad', 'num_buques']
