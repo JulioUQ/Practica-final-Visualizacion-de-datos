@@ -392,6 +392,11 @@ with tab1:
             eslora_cat = data_filtered['categoria_eslora'].value_counts().reset_index()
             eslora_cat.columns = ['categoria', 'count']
             
+            # Definir el orden correcto
+            orden_eslora = ['Pequeño (<10m)', 'Mediano (10-15m)', 'Grande (15-20m)', 'Muy Grande (>20m)']
+            eslora_cat['categoria'] = pd.Categorical(eslora_cat['categoria'], categories=orden_eslora, ordered=True)
+            eslora_cat = eslora_cat.sort_values('categoria')
+            
             fig_eslora_cat = px.bar(
                 eslora_cat,
                 x='categoria',
@@ -410,6 +415,11 @@ with tab1:
         if 'categoria_edad' in data_filtered.columns:
             edad_cat = data_filtered['categoria_edad'].value_counts().reset_index()
             edad_cat.columns = ['categoria', 'count']
+            
+            # Definir el orden correcto
+            orden_edad = ['0-10 años', '11-20 años', '21-30 años', '>30 años']
+            edad_cat['categoria'] = pd.Categorical(edad_cat['categoria'], categories=orden_edad, ordered=True)
+            edad_cat = edad_cat.sort_values('categoria')
             
             fig_edad_cat = px.bar(
                 edad_cat,
