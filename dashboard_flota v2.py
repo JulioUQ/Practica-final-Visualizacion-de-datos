@@ -376,6 +376,14 @@ with tab1:
         fig_material.update_layout(height=400, showlegend=True)
         st.plotly_chart(fig_material, use_container_width=True)
 
+    st.markdown("""
+    <div class="insight-box">
+        <strong>💡 Insight</strong> La flota es predominantemente artesanal y tradicional, con una fuerte correlación entre el 66.9% de artes menores y el 76.1% de cascos de madera. 
+                El uso de materiales modernos como poliéster o acero es minoritario, quedando relegado apenas a una cuarta parte de las embarcaciones. 
+                Esta estructura sugiere una necesidad de modernización, ya que gran parte del sector depende aún de técnicas y materiales antiguos.
+    </div>
+    """, unsafe_allow_html=True)
+
     st.markdown("### 🔢 Distribución de Características")
     col1, col2 = st.columns(2)
 
@@ -417,6 +425,13 @@ with tab1:
             fig_edad_cat.update_layout(height=400, showlegend=False)
             st.plotly_chart(fig_edad_cat, use_container_width=True)
 
+    st.markdown("""
+    <div class="insight-box">
+        <strong>💡 Insight</strong> La flota es masivamente de pequeña escala, con más de 14.000 buques de eslora menor a 10 metros que superan con creces al resto de categorías juntas. 
+                Se observa un envejecimiento notable, ya que la mayoría de las embarcaciones tienen entre 11 y 20 años, superando al grupo de barcos más nuevos (0-10 años). 
+                Existe una clara correlación entre la dimensión reducida de los buques y su antigüedad, lo que refuerza la imagen de una flota artesanal que requiere renovación estructural.
+    </div>
+    """, unsafe_allow_html=True)
 
 # TAB 6: CONTROL DE CALIDAD
 with tab6:
@@ -805,7 +820,13 @@ with tab2:
         - Rango: {data_filtered['Edad_buque'].min():.0f}-{data_filtered['Edad_buque'].max():.0f} años
         """)
 
-    # NUEVO: Ciclos de renovación
+    st.markdown("""
+    <div class="insight-box">
+        <strong>💡 Insight Clave:</strong> Existe un envejecimiento estructural crítico, donde la edad media de 18 años y una moda de 28 años confirman que el grueso de las embarcaciones se acerca al final de su vida útil.
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Ciclos de renovación
     st.markdown("### 🔄 Ciclos de Renovación: Altas vs Bajas")
     
     altas_bajas = pd.DataFrame({
@@ -1047,6 +1068,12 @@ with tab3:
     )
     st.plotly_chart(fig_edad_ccaa, use_container_width=True)
 
+    st.markdown("""
+    <div class="insight-box">
+        <strong>💡 Insight Clave:</strong> Geográficamente, la veteranía es desigual, destacando la Comunitat Valenciana con la media más alta (20.9 años) frente a la notable modernidad de las flotas de Ceuta y Melilla.
+    </div>
+    """, unsafe_allow_html=True)
+
     # Treemap de puertos
     st.markdown("### ⚓ Distribución de Flota por Puerto y Comunidad")
     
@@ -1153,7 +1180,7 @@ with tab4:
         yaxis_title='Porcentaje de Buques (%)',
         barmode='stack',
         height=600,
-        legend=dict(orientation="v", yanchor="top", y=0.99, xanchor="right", x=1.12)
+        legend=dict(orientation="v", yanchor="top", y=0.99, xanchor="right", x=1.14)
     )
     fig_ccaa_arte.update_xaxes(tickangle=45)
     st.plotly_chart(fig_ccaa_arte, use_container_width=True)
@@ -1195,9 +1222,9 @@ with tab4:
             row=1, col=3
         )
 
-    fig_arte_caract.update_yaxes(title_text="Metros", row=1, col=1)
-    fig_arte_caract.update_yaxes(title_text="kW", row=1, col=2)
-    fig_arte_caract.update_yaxes(title_text="GT", row=1, col=3)
+    fig_arte_caract.update_yaxes(title_text="Metros", row=1, col=1, type='log')
+    fig_arte_caract.update_yaxes(title_text="kW", row=1, col=2, type='log')
+    fig_arte_caract.update_yaxes(title_text="GT", row=1, col=3, type='log')
 
     fig_arte_caract.update_xaxes(title_text="", row=1, col=1)
     fig_arte_caract.update_xaxes(title_text="", row=1, col=2)
@@ -1209,6 +1236,13 @@ with tab4:
         legend=dict(orientation="h", yanchor="bottom", y=-0.4, xanchor="center", x=0.5)
     )
     st.plotly_chart(fig_arte_caract, use_container_width=True)
+
+    st.markdown("""
+    <div class="insight-box">
+        <strong>💡 Insight</strong> Se observa una clara segmentación técnica, confirmando que el esfuerzo pesquero industrial se concentra en un grupo reducido de embarcaciones altamente tecnificadas frente a la simplicidad del sector artesanal.
+    </div>
+    """, unsafe_allow_html=True)
+
 
     # Scatter 3D
     st.markdown("### 🔬 Relación Tridimensional: Eslora, Potencia y Arqueo")
@@ -1231,6 +1265,13 @@ with tab4:
     )
     fig_3d.update_traces(marker=dict(line=dict(width=0)))
     st.plotly_chart(fig_3d, use_container_width=True)
+
+    st.markdown("""
+    <div class="insight-box">
+        <strong>💡 Insight</strong> El gráfico tridimensional revela una correlación exponencial entre eslora, potencia y arqueo, 
+                donde un pequeño grupo de buques de cerco y arrastre se desmarca del resto con capacidades industriales extremas.
+
+    """, unsafe_allow_html=True)
 
 # TAB 5: TIPOLOGÍAS (CLUSTERING)
 with tab5:
@@ -1354,6 +1395,12 @@ with tab5:
             # Distribución geográfica
             ccaa_dist = cluster_data['Comunidad Autónoma'].value_counts()
             st.markdown(f"**Principales CCAA:** {', '.join(ccaa_dist.head(3).index.tolist())}")
+
+    st.markdown("""
+    <div class="insight-box">
+        <strong>💡 Insight</strong> Esta segmentación subraya una brecha generacional drástica, donde los grupos de barcos pequeños 
+                presentan edades medias contrapuestas de 23 años frente a los más modernos de solo 7.7 años.
+    """, unsafe_allow_html=True)
 
 # ============================================
 # TAB 7: CONCLUSIONES
@@ -1479,70 +1526,6 @@ with tab7:
     """, unsafe_allow_html=True)
     
     st.markdown("<br>", unsafe_allow_html=True)
-    
-    # Comparativa temporal
-    st.markdown("### 📊 Evolución de Indicadores Clave")
-    
-    # Comparar periodos
-    df_1987_2000 = data[data['anio_alta'].between(1987, 2000)]
-    df_2001_2010 = data[data['anio_alta'].between(2001, 2010)]
-    df_2011_2025 = data[data['anio_alta'].between(2011, 2025)]
-    
-    comparativa_data = {
-        'Periodo': ['1987-2000', '2001-2010', '2011-2025'],
-        'Altas Totales': [len(df_1987_2000), len(df_2001_2010), len(df_2011_2025)],
-        'Eslora Media (m)': [
-            df_1987_2000['eslora_total'].mean(),
-            df_2001_2010['eslora_total'].mean(),
-            df_2011_2025['eslora_total'].mean()
-        ],
-        'Potencia Media (kW)': [
-            df_1987_2000['potencia_kw'].mean(),
-            df_2001_2010['potencia_kw'].mean(),
-            df_2011_2025['potencia_kw'].mean()
-        ]
-    }
-    
-    df_comparativa = pd.DataFrame(comparativa_data)
-    
-    fig_comparativa = go.Figure()
-    
-    fig_comparativa.add_trace(go.Bar(
-        name='Altas Totales',
-        x=df_comparativa['Periodo'],
-        y=df_comparativa['Altas Totales'],
-        yaxis='y',
-        marker_color='#0066cc'
-    ))
-    
-    fig_comparativa.add_trace(go.Scatter(
-        name='Eslora Media',
-        x=df_comparativa['Periodo'],
-        y=df_comparativa['Eslora Media (m)'],
-        yaxis='y2',
-        mode='lines+markers',
-        line=dict(color='#28a745', width=3),
-        marker=dict(size=12)
-    ))
-    
-    fig_comparativa.update_layout(
-        title='Evolución por Periodos: Número vs Tamaño',
-        xaxis_title='Periodo',
-        yaxis=dict(title='Número de Altas', side='left'),
-        yaxis2=dict(title='Eslora Media (m)', overlaying='y', side='right'),
-        height=400,
-        hovermode='x unified',
-        legend=dict(
-            orientation="v",
-            yanchor="top",
-            y=1,
-            xanchor="left",
-            x=1.05
-        ),
-        margin=dict(r=120)
-    )
-    
-    st.plotly_chart(fig_comparativa, use_container_width=True)
 
 # ============================================
 # FOOTER
@@ -1551,7 +1534,7 @@ st.markdown("---")
 st.markdown("""
 <div style="text-align: center; color: #888; padding: 20px;">
     <p><strong>Dashboard Flota Pesquera Española (1987-2025)</strong></p>
-    <p>Análisis de Visualización de Datos | Máster en Ciencia de Datos</p>
-    <p>Dataset: 27,364 buques registrados en el RGFP | Fuente: Ministerio de Agricultura, Pesca y Alimentación</p>
+    <p><strong>Visualización de Datos | Máster en Ciencia de Datos</strong></p>
+    <p><strong>Autor: Julio Úbeda Quesada | Fuente: Ministerio de Agricultura, Pesca y Alimentación</strong></p>
 </div>
 """, unsafe_allow_html=True)
